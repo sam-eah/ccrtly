@@ -1,4 +1,4 @@
-module ccrtly
+module github.com/sam-eah/ccrtly
 
 go 1.21.4
 
