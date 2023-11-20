@@ -1,0 +1,80 @@
+envs:
+  - env: dev
+    tenants:
+      tenant:
+      tenant-2:
+        ASP_PROFILE: tenant-dev-2
+        TF_WORKSPACE: tenant-dev-2
+      tenant-3:
+      tenant-4:
+        ASP_PROFILE: tenant-dev-4
+      tenant-5:
+      tenant-6:
+      tenant-7:
+      tenant-8:
+        ASP_PROFILE: tenant-dev-8
+  - env: stg
+    tenants:
+      tenant:
+      tenant-4:
+        ASP_PROFILE: tenant-8NL-stg
+      tenant-7:
+      tenant-8:
+        ASP_PROFILE: tenant-dev-8
+  - env: ppr
+    tenants:
+      tenant-5:
+      tenant-6:
+      tenant-7:
+  - env: prd
+    tenants:
+      tenant-3:
+        ASP_PROFILE: tenant-3-prod
+      tenant-5:
+        ASP_PROFILE: tenant-5-prod
+      tenant-6:
+        ASP_PROFILE: tenant-6-prod
+      tenant-7:
+        ASP_PROFILE: tenant-7-prod
+      tenant-8:
+        ASP_PROFILE: tenant-prod-8
+
+prescript: |
+  export ASP_PROFILE="${CCRTLY_TENANT}-${CCRTLY_ENV}"
+  export TF_WORKSPACE="${CCRTLY_TENANT}_${CCRTLY_ENV}"
+  asp $ASP_PROFILE
+  echo $TF_WORKSPACE
+
+postscript: |
+  asp
+
+scripts:
+  - name: setup_remote_state
+    command: |
+      export REMOTE_TF_WORKSPACE="${CCRTLY_TENANT}-${CCRTLY_ENV}"
+      echo $REMOTE_TF_WORKSPACE
+      cd remote_states
+      terraform workspace new $REMOTE_TF_WORKSPACE
+      terraform apply
+  - name: setup_workspace
+    command: |
+      terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
+      terraform workspace new $TF_WORKSPACE
+  - name: "plan"
+    command: |
+      terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
+      terraform plan -var-file=variables/$(tf workspace show).tfvars -parallelism=200 -out=scripts/$TF_WORKSPACE.plan
+  - name: "plan_destroy"
+    command: |
+      terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
+      terraform plan -destroy -var-file=variables/$(tf workspace show).tfvars -parallelism=200 -out=scripts/$TF_WORKSPACE.plan
+  - name: "apply_plan"
+    command: |
+      terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
+      terraform apply -auto-approve scripts/$TF_WORKSPACE.plan
+      rm scripts/$TF_WORKSPACE.plan
+  - name: "show_plan"
+    command: |
+      terraform show scripts/$TF_WORKSPACE.plan
+      echo "*********************************"
+    sequentially: true

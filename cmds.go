@@ -39,58 +39,6 @@ func Native2(file_path string) string {
 	return output
 }
 
-type Command struct {
-	name       string
-	command    string
-	sequential bool
-}
-
-var base_commands = []Command{
-	{
-		name: "setup_remote_state",
-		command: `echo $REMOTE_TF_WORKSPACE
-asp $ASP_PROFILE
-cd remote_states
-terraform workspace new $REMOTE_TF_WORKSPACE
-terraform apply
-asp`,
-	},
-	{
-		name: "setup_workspace",
-		command: `echo $TF_WORKSPACE
-asp $ASP_PROFILE
-terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
-terraform workspace new $TF_WORKSPACE
-asp`,
-	},
-	{
-		name: "plan",
-		command: `echo $TF_WORKSPACE
-asp $ASP_PROFILE
-terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
-terraform plan -var-file=variables/$(tf workspace show).tfvars -parallelism=200 -out=scripts/$TF_WORKSPACE.plan
-asp`,
-	},
-	{
-		name: "apply_plan",
-		command: `echo $TF_WORKSPACE
-asp $ASP_PROFILE
-terraform init -backend-config=variables/backend_$TF_WORKSPACE.tfvars -reconfigure
-terraform apply -auto-approve scripts/$TF_WORKSPACE.plan
-rm scripts/$TF_WORKSPACE.plan
-asp`,
-	},
-	{
-		name: "show_plan",
-		command: `echo $TF_WORKSPACE
-asp $ASP_PROFILE
-terraform show scripts/$TF_WORKSPACE.plan
-echo "*********************************"
-asp`,
-		sequential: true,
-	},
-}
-
 func Native3(str string, combo Combo) {
 	cmd := exec.Command("/bin/zsh", "-c",
 		str)
@@ -123,26 +71,26 @@ func Native3(str string, combo Combo) {
 	// // return output
 }
 
-func generateEnvVariables(combo Combo, vars map[string]string) string {
-	str := "source ~/.zshrc\n"
-
-	all_vars := map[string]string{
-		"TF_ENV":              combo.env,
-		"TF_TENANT":           combo.tenant,
-		"ASP_PROFILE":         combo.tenant + "-" + combo.env,
-		"TF_WORKSPACE":        combo.tenant + "_" + combo.env,
-		"REMOTE_TF_WORKSPACE": combo.tenant + "-" + combo.env,
-	}
+func generateEnvVariables(combo Combo, vars map[string]string, config Config, command string) string {
+	str := fmt.Sprintf(`source ~/.zshrc
+export CCRTLY_ENV="%s"
+export CCRTLY_TENANT="%s"
+`, combo.env, combo.tenant)
 
 	// Section to add/override variables
-	for k, v := range vars {
-		all_vars[k] = v
-	}
+	// for k, v := range vars {
+	// 	all_vars[k] = v
+	// }
+
+	str += config.Prescript
 
 	// Add all vars to str
-	for k, v := range all_vars {
+	for k, v := range vars {
 		str += fmt.Sprintf("export %s=\"%s\"\n", k, v)
 	}
+
+	str += command
+	str += config.Postscript
 
 	fmt.Println(str)
 
@@ -179,31 +127,14 @@ var rootCmd = &cobra.Command{
 
 		m := initialModel(columns, rows, available)
 
-		// p := tea.NewProgram(m)
-		// if _, err := p.Run(); err != nil {
-		// 	fmt.Println("could not start program:", err)
-		// 	os.Exit(1)
-		// }
-
 		if len(m.selected) == 0 {
 			fmt.Println("Nothing selected")
 			return nil
 		}
 
-		// fmt.Println(m.selected)
-
-		commands := base_commands
-
-		for k, v := range config.Scripts {
-			commands = append(commands, Command{
-				name:    k,
-				command: v,
-			})
-		}
-
 		list := []list.Item{}
-		for _, v := range commands {
-			list = append(list, item(v.name))
+		for _, v := range config.Scripts {
+			list = append(list, item(v.Name))
 		}
 		t := createList(list)
 
@@ -213,29 +144,27 @@ var rootCmd = &cobra.Command{
 
 		fmt.Println("	> ", t.choice)
 
-		var command Command
-		for _, v := range commands {
-			if v.name == t.choice {
+		var command Script
+		for _, v := range config.Scripts {
+			if v.Name == t.choice {
 				command = v
 			}
 		}
 
-		if command.sequential {
-			fmt.Printf("Running %s sequentially for all selected profiles\n", command.name)
+		if command.Sequentially {
+			fmt.Printf("Running %s sequentially for all selected profiles\n", command.Name)
 			for selected := range m.selected {
 				// fmt.Println(selected)
 
-				str := generateEnvVariables(selected, m.available[selected])
-				str += command.command
+				str := generateEnvVariables(selected, m.available[selected], config, command.Command)
 				Native3(str, selected)
 			}
 		} else {
-			fmt.Printf("Running %s concurrently for all selected profiles\n", command.name)
+			fmt.Printf("Running %s concurrently for all selected profiles\n", command.Name)
 			var wg = sync.WaitGroup{}
 
 			for selected := range m.selected {
-				str := generateEnvVariables(selected, m.available[selected])
-				str += command.command
+				str := generateEnvVariables(selected, m.available[selected], config, command.Command)
 				// fmt.Println(str)
 				wg.Add(1)
 				go func(selected Combo) {

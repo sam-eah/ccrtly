@@ -11,9 +11,17 @@ type Env struct {
 	Tenants map[string]map[string]string `mapstructure:"tenants"`
 }
 
+type Script struct {
+	Name string `mapstructure:"name"`
+	Command string `mapstructure:"command"`
+	Sequentially bool `mapstructure:"sequentially"`
+}
+
 type Config struct {
 	Envs    []Env             `mapstructure:"envs"`
-	Scripts map[string]string `mapstructure:"scripts"`
+	Scripts []Script `mapstructure:"scripts"`
+	Postscript string `mapstructure:"postscript"`
+	Prescript string `mapstructure:"prescript"`
 }
 
 func GetConfig() Config {
