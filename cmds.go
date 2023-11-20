@@ -92,7 +92,7 @@ export CCRTLY_TENANT="%s"
 
 	// Combo level variables
 	for k, v := range vars {
-		str += fmt.Sprintf("export %s=\"%s\"\n", k, v)
+		str += fmt.Sprintf("export %s=\"%s\"\n", strings.ToUpper(k), v)
 	}
 
 	str += config.Prescript
