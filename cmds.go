@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"sort"
 	"sync"
+    "strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/spf13/cobra"
@@ -77,18 +78,24 @@ export CCRTLY_ENV="%s"
 export CCRTLY_TENANT="%s"
 `, combo.env, combo.tenant)
 
-	// Section to add/override variables
-	// for k, v := range vars {
-	// 	all_vars[k] = v
-	// }
+	// Config level variables
+	for k, v := range config.Variables {
+		str += fmt.Sprintf("export %s=\"%s\"\n", strings.ToUpper(k), v)
+	}
 
-	str += config.Prescript
+	// Tenant level variables
+	if tenant, ok := config.Tenants[combo.tenant]; ok {
+		for k, v := range tenant {
+			str += fmt.Sprintf("export %s=\"%s\"\n", strings.ToUpper(k), v)
+		}
+	}
 
-	// Add all vars to str
+	// Combo level variables
 	for k, v := range vars {
 		str += fmt.Sprintf("export %s=\"%s\"\n", k, v)
 	}
 
+	str += config.Prescript
 	str += command
 	str += config.Postscript
 

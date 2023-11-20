@@ -12,16 +12,18 @@ type Env struct {
 }
 
 type Script struct {
-	Name string `mapstructure:"name"`
-	Command string `mapstructure:"command"`
-	Sequentially bool `mapstructure:"sequentially"`
+	Name         string `mapstructure:"name"`
+	Command      string `mapstructure:"command"`
+	Sequentially bool   `mapstructure:"sequentially"`
 }
 
 type Config struct {
-	Envs    []Env             `mapstructure:"envs"`
-	Scripts []Script `mapstructure:"scripts"`
-	Postscript string `mapstructure:"postscript"`
-	Prescript string `mapstructure:"prescript"`
+	Envs       []Env                        `mapstructure:"envs"`
+	Scripts    []Script                     `mapstructure:"scripts"`
+	Variables  map[string]string            `mapstructure:"variables"`
+	Postscript string                       `mapstructure:"postscript"`
+	Prescript  string                       `mapstructure:"prescript"`
+	Tenants    map[string]map[string]string `mapstructure:"tenants"`
 }
 
 func GetConfig() Config {
@@ -29,7 +31,7 @@ func GetConfig() Config {
 	vp := viper.New()
 	// config := &Config{}
 
-	vp.SetConfigName("project")
+	vp.SetConfigName("ccrtly.config")
 	vp.SetConfigType("yaml")
 	vp.AddConfigPath(".")
 

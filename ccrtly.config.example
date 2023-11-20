@@ -39,9 +39,11 @@ envs:
       tenant-8:
         ASP_PROFILE: tenant-prod-8
 
+variables:
+  ASP_PROFILE: "${CCRTLY_TENANT}-${CCRTLY_ENV}"
+  TF_WORKSPACE: "${CCRTLY_TENANT}_${CCRTLY_ENV}"
+
 prescript: |
-  export ASP_PROFILE="${CCRTLY_TENANT}-${CCRTLY_ENV}"
-  export TF_WORKSPACE="${CCRTLY_TENANT}_${CCRTLY_ENV}"
   asp $ASP_PROFILE
   echo $TF_WORKSPACE
 
