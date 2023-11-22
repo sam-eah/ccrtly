@@ -1,14 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
+	"strings"
 	"sync"
-    "strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/spf13/cobra"
+	log "github.com/sirupsen/logrus"
 )
 
 // func initialListModel() ListModel {
@@ -44,12 +47,39 @@ func Native3(str string, combo Combo) {
 	cmd := exec.Command("/bin/zsh", "-c",
 		str)
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println(fmt.Sprint(err) + ": " + string(output))
-		return
-	}
-	fmt.Println(string(output))
+		// create a pipe for the output of the script
+    cmdReader, err := cmd.StdoutPipe()
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
+        return
+    }
+
+    scanner := bufio.NewScanner(cmdReader)
+    go func() {
+        for scanner.Scan() {
+			log.Infof("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
+            // fmt.Printf("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
+        }
+    }()
+
+    err = cmd.Start()
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+        return
+    }
+
+    err = cmd.Wait()
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+        return
+    }
+
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	fmt.Println(fmt.Sprint(err) + ": " + string(output))
+	// 	return
+	// }
+	// fmt.Println(string(output))
 	// cmd.Stdout = os.Stdout
 	// cmd.Stderr = os.Stderr
 	// fmt.Println("1111")
@@ -99,7 +129,8 @@ export CCRTLY_TENANT="%s"
 	str += command
 	str += config.Postscript
 
-	fmt.Println(str)
+	// fmt.Println(str)
+	log.Info(str)
 
 	return str
 }

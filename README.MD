@@ -1,8 +1,28 @@
-## CCRTLY
+# ccrtly
 
 Run scripts on multiple environments and/or tenants concurrently (or sequentially)
 
-Based on Cobra (CLI), Viper (Config files) & BubbleTea (TUI)
+Based on:
+
+- [Cobra (CLI)](https://github.com/spf13/cobra)
+- [Viper (Config files)](https://github.com/spf13/viper)
+- [BubbleTea (TUI)](https://github.com/charmbracelet/bubbletea)
+- [Logrus (logs)](https://github.com/sirupsen/logrus)
+
+## Get Started
+
+Prerequisite: golang installed
+
+Install the package globally, run this command outside of a go module:
+```sh
+go install github.com/sam-eah/ccrtly@latest
+```
+
+Make sure modules are in the path:
+`~/.zshrc` should contain this line:
+```sh
+export PATH="$HOME/go/bin:$PATH"
+```
 
 ## Commands
 
@@ -60,7 +80,7 @@ With the list, press enter to validate.
 envs:
   - env: ENV_1
     variables:
-      ENV_VAR_1_KEY: ENV_VAR_1_VALUE
+      VAR_1_KEY: VAR_1_VALUE
     tenants:
       TENANT_1:
         VAR_1_KEY: VAR_1_VALUE
@@ -73,6 +93,9 @@ envs:
       TENANT_1:
         VAR_1_KEY: VAR_1_VALUE
         VAR_2_KEY: VAR_2_VALUE
+
+variables:
+  VAR_1_KEY: VAR_1_VALUE
 
 prescript: |
   echo "before"
@@ -89,14 +112,14 @@ scripts:
     command: |
       echo "script2 $CCRTLY_ENV $CCRTLY_TENANT"
       ls
+    sequentially: true
 
 tenants:
   TENANT_1:
-    TENANT_VAR_1_KEY: TENANT_VAR_1_VALUE
-    TENANT_VAR_2_KEY: TENANT_VAR_2_VALUE
+    VAR_1_KEY: VAR_1_VALUE
+    VAR_2_KEY: VAR_2_VALUE
   TENANT_2:
-    TENANT_VAR_1_KEY: TENANT_VAR_1_VALUE
-    TENANT_VAR_2_KEY: TENANT_VAR_2_VALUE
+    VAR_1_KEY: VAR_1_VALUE
 ```
 
 ## Environment variables

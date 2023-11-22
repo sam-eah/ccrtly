@@ -24,3 +24,4 @@ go.work
 terraform.tfstate.d
 
 ccrtly.config
+ccrtly.config.yaml
