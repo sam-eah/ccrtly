@@ -10,8 +10,8 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // func initialListModel() ListModel {
@@ -44,35 +44,44 @@ func Native2(file_path string) string {
 }
 
 func Native3(str string, combo Combo) {
+	log.SetLevel(log.DebugLevel)
 	cmd := exec.Command("/bin/zsh", "-c",
 		str)
 
-		// create a pipe for the output of the script
-    cmdReader, err := cmd.StdoutPipe()
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
-        return
-    }
+	// create a pipe for the output of the script
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
+		return
+	}
+	log.Debug("Created StdoutPipe for Cmd.")
+	cmd.Stderr = cmd.Stdout
 
-    scanner := bufio.NewScanner(cmdReader)
-    go func() {
-        for scanner.Scan() {
-			log.Infof("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
-            // fmt.Printf("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
-        }
-    }()
+	scanner := bufio.NewScanner(cmdReader)
+	go func() {
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "Error") {
+				log.Errorf("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
+			} else {
+				log.Infof("[%-4s|%12s] %s\n", combo.env, combo.tenant, scanner.Text())
+			}
+		}
+	}()
 
-    err = cmd.Start()
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
-        return
-    }
+	err = cmd.Start()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+		return
+	}
+	log.Debug("Started Cmd.")
 
-    err = cmd.Wait()
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
-        return
-    }
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+		return
+	}
+	fmt.Println()
+	log.Debug("Waited for Cmd.")
 
 	// output, err := cmd.CombinedOutput()
 	// if err != nil {
