@@ -1,0 +1,19 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>Server Sent Events</h1>
+    <div id="main">
+        <h3 id="rand-container">Random Number</h3>
+        <div hx-ext="sse" sse-connect="/random" sse-swap="message" hx-swap="beforeend"></div>
+    </div>
+</body>
+
+</html>
