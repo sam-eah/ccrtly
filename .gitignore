@@ -25,3 +25,5 @@ terraform.tfstate.d
 
 ccrtly.config
 ccrtly.config.yaml
+
+variables

@@ -1,5 +1,13 @@
 package main
 
+import (
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
 func main() {
 	// var strTmp string
 	// myCmd := &cobra.Command{
@@ -12,6 +20,38 @@ func main() {
 	// }
 	// myCmd.Flags().StringVarP((&strTmp), "test", "t", "", "Source directory to read from")
 	// myCmd.Execute()
+
+	entries, err := os.ReadDir("./variables")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, e := range entries {
+		if !e.IsDir() && filepath.Ext(e.Name()) == ".tfvars" && !strings.HasPrefix(e.Name(), "backend") {
+			name := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+			name = strings.ToLower(name)
+			name = strings.ReplaceAll(name, "_", "-")
+			name = strings.ReplaceAll(name, "-prod", "-prd")
+
+			suffix := ""
+
+			if strings.HasSuffix(name, "-2") {
+				suffix = "-2"
+				name = strings.TrimSuffix(name, "-2")
+			}
+			if strings.HasSuffix(name, "-3") {
+				suffix = "-3"
+				name = strings.TrimSuffix(name, "-3")
+			}
+
+			lastInd := strings.LastIndex(name, "-")
+			tenant := name[:lastInd] + suffix
+			env := name[lastInd+1:] // o/p: ew
+
+			fmt.Println(tenant, env)
+		}
+	}
+
 	rootCmd.Execute()
 }
 
