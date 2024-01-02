@@ -28,7 +28,7 @@ type Model struct {
 
 	viewport viewport.Model
 
-	available map[Combo]map[string]string
+	available map[Combo]ComboContent
 	selected  map[Combo]struct{}
 }
 
@@ -162,7 +162,7 @@ func New(opts ...Option) Model {
 		KeyMap: DefaultKeyMap(),
 		styles: DefaultStyles(),
 
-		available: make(map[Combo]map[string]string),
+		available: make(map[Combo]ComboContent),
 		selected:  make(map[Combo]struct{}),
 	}
 
@@ -176,7 +176,7 @@ func New(opts ...Option) Model {
 }
 
 // WithColumns sets the table columns (headers).
-func WithAvailable(available map[Combo]map[string]string) Option {
+func WithAvailable(available map[Combo]ComboContent) Option {
 	return func(m *Model) {
 		m.available = available
 	}
@@ -549,7 +549,12 @@ func (m Model) renderHeaderRowCell(rowID int) string {
 	return renderedCell
 }
 
-func initialModel(columns []Column, rows []Row, available map[Combo]map[string]string) Model {
+type ComboContent struct {
+	filename string
+	vars map[string]string
+}
+
+func initialModel(columns []Column, rows []Row, available map[Combo]ComboContent) Model {
 	t := New(
 		WithColumns(columns),
 		WithRows(rows),

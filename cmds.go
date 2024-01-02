@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -111,11 +112,12 @@ func Native3(str string, combo Combo) {
 	// // return output
 }
 
-func generateEnvVariables(combo Combo, vars map[string]string, config Config, command string) string {
+func generateEnvVariables(combo Combo, vars map[string]string, filename string, config Config, command string) string {
 	str := fmt.Sprintf(`source ~/.zshrc
 export CCRTLY_ENV="%s"
 export CCRTLY_TENANT="%s"
-`, combo.env, combo.tenant)
+export CCRTLY_FILENAME="%s"
+`, combo.env, combo.tenant, filename)
 
 	// Config level variables
 	for k, v := range config.Variables {
@@ -151,26 +153,7 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config := GetConfig()
 
-		envs := config.Envs
-
-		columns := make([]Column, 0)
-		rows := make([]Row, 0)
-
-		available := make(map[Combo]map[string]string)
-
-		for _, env := range envs {
-			columns = append(columns, Column(env.Name))
-			for tenant, profiles := range env.Tenants {
-				rows = append(rows, Row(tenant))
-				available[Combo{env.Name, tenant}] = profiles
-			}
-		}
-
-		rows = removeDuplicate(rows)
-
-		sort.Slice(rows, func(i, j int) bool {
-			return rows[i] < rows[j]
-		})
+		available, columns, rows := getCombos()
 
 		m := initialModel(columns, rows, available)
 
@@ -203,7 +186,7 @@ var rootCmd = &cobra.Command{
 			for selected := range m.selected {
 				// fmt.Println(selected)
 
-				str := generateEnvVariables(selected, m.available[selected], config, command.Command)
+				str := generateEnvVariables(selected, m.available[selected].vars, m.available[selected].filename, config, command.Command)
 				Native3(str, selected)
 			}
 		} else {
@@ -211,7 +194,7 @@ var rootCmd = &cobra.Command{
 			var wg = sync.WaitGroup{}
 
 			for selected := range m.selected {
-				str := generateEnvVariables(selected, m.available[selected], config, command.Command)
+				str := generateEnvVariables(selected, m.available[selected].vars, m.available[selected].filename, config, command.Command)
 				// fmt.Println(str)
 				wg.Add(1)
 				go func(selected Combo) {
@@ -244,4 +227,58 @@ func init() {
 	)
 	// fmt.Println("help")
 	rootCmd.AddCommand(helpCmd)
+}
+
+func getCombos() (map[Combo]ComboContent, []Column, []Row) {
+
+	entries, err := os.ReadDir("./variables")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	columns := make([]Column, 0)
+	rows := make([]Row, 0)
+	available := make(map[Combo]ComboContent)
+
+	for _, e := range entries {
+		if !e.IsDir() && filepath.Ext(e.Name()) == ".tfvars" && !strings.HasPrefix(e.Name(), "backend") {
+			filename := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+
+			name := strings.ToLower(filename)
+			name = strings.ReplaceAll(name, "_", "-")
+			name = strings.ReplaceAll(name, "-prod", "-prd")
+
+			suffix := ""
+
+			if strings.HasSuffix(name, "-2") {
+				suffix = "-2"
+				name = strings.TrimSuffix(name, "-2")
+			}
+			if strings.HasSuffix(name, "-3") {
+				suffix = "-3"
+				name = strings.TrimSuffix(name, "-3")
+			}
+
+			lastInd := strings.LastIndex(name, "-")
+			tenant := name[:lastInd] + suffix
+			env := name[lastInd+1:] // o/p: ew
+
+			fmt.Println(tenant, env)
+			columns = append(columns, Column(env))
+			rows = append(rows, Row(tenant))
+			available[Combo{env, tenant}] = ComboContent{
+				filename: filename,
+				vars: make(map[string]string),
+			}
+		}
+	}
+
+	rows = removeDuplicate(rows)
+	columns = removeDuplicate(columns)
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i] < rows[j]
+	})
+
+	return available, columns, rows
 }

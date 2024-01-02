@@ -33,6 +33,7 @@ func GetConfig() Config {
 
 	vp.SetConfigName("ccrtly.config")
 	vp.SetConfigType("yaml")
+	vp.AddConfigPath("$HOME")
 	vp.AddConfigPath(".")
 
 	err := vp.ReadInConfig()
